@@ -66,16 +66,19 @@ Pillow を備えた Python 3.9+ が必要です。テストとデプロイには
 ```bash
 git clone https://github.com/atuizz/posewear.git && cd posewear
 pip install pillow
-python3 scripts/fetch-assets.py   # downloads data and images from the original galleries (several GB)
-python3 build.py                  # outputs dist/
+python3 scripts/fetch-assets.py   # 元ギャラリーからデータと画像を取得（数 GB）
+python3 scripts/fetch-modules.py  # Shisei（CC0）と CharaDB のタグ。画像はホットリンクのみ
+python3 build.py                  # dist/ を出力
 python3 -m http.server 8787 -d dist
 ```
+
+`fetch-modules.py` は髪型・歴代衣装・シーン・光・小道具・家具を埋めます。表情タブは空のままです。WaveSpeed には再配布できる公開パッケージがなく、robots.txt と利用規約 8.5 が画像とデータの収集を禁じています。素材は `assets-raw/` に残り、git には入りません。
 
 別の素材フォルダを使うには `POSEWEAR_RAW` を、サイトマップや共有リンク用に独自のサイト URL を設定するには `POSEWEAR_SITE` を設定します。
 
 ## デプロイ
 
-このリポジトリは素材を含まずに配布されるため、まずローカルでビルドし、`dist/` を Cloudflare Pages にアップロードします：
+このリポジトリは素材を含まずに配布されるため、先に `fetch-assets.py` と `fetch-modules.py` を実行し、その後 `dist/` をビルドして Cloudflare Pages にアップロードします：
 
 ```bash
 npm install && npx wrangler login
@@ -109,7 +112,7 @@ Issue と PR を歓迎します。PR を出す前に `python3 build.py` と両�
 
 ## 謝辞
 
-[AI Pose Gallery](https://ai-pose-gallery.pages.dev/) · [AI Costume Gallery](https://ai-costume-gallery.pages.dev/) · [AI Costume Anime Gallery](https://ai-costume-anime-gallery.pages.dev/) by [@giaaibusi](https://x.com/giaaibusi) · [AI Pose Depth Gallery](https://ai-pose-depth-gallery.pages.dev/) by [ギア / @giaaibusi](https://x.com/giaaibusi)（ホットリンク、非公式の中国語インデックス。画像はこのリポジトリには含まれません） · [AI Portrait Gallery](https://ai-portrait-gallery.pages.dev/) by [@agi_aibusi](https://x.com/agi_aibusi)（CC0） · [wzc520pyfm/gen-ai-pose-image](https://github.com/wzc520pyfm/gen-ai-pose-image) · [paipiange/nvzhuang](https://github.com/paipiange/nvzhuang)
+[AI Pose Gallery](https://ai-pose-gallery.pages.dev/) · [AI Costume Gallery](https://ai-costume-gallery.pages.dev/) · [AI Costume Anime Gallery](https://ai-costume-anime-gallery.pages.dev/) by [@giaaibusi](https://x.com/giaaibusi) · [AI Pose Depth Gallery](https://ai-pose-depth-gallery.pages.dev/) by [ギア / @giaaibusi](https://x.com/giaaibusi)（ホットリンク、非公式の中国語インデックス。画像はこのリポジトリには含まれません） · [AI Portrait Gallery](https://ai-portrait-gallery.pages.dev/) by [@agi_aibusi](https://x.com/agi_aibusi)（CC0） · [Shisei](https://github.com/wquguru/shisei)（歴代衣装・シーン・光・小道具・家具。画像とデータは CC0） · [CharaDB](https://github.com/taki-ttt/charadb)（タグは CC0、画像はホットリンクのみ） · [wzc520pyfm/gen-ai-pose-image](https://github.com/wzc520pyfm/gen-ai-pose-image) · [paipiange/nvzhuang](https://github.com/paipiange/nvzhuang)
 
 ## ライセンスと素材の扱い
 
@@ -120,6 +123,9 @@ Issue と PR を歓迎します。PR を出す前に `python3 build.py` と両�
 | 人物画像 | いいえ — 上と同じ | [@agi_aibusi](https://x.com/agi_aibusi)（[AI Portrait Gallery](https://ai-portrait-gallery.pages.dev/)）による [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | 深度ポーズ画像 | いいえ — [AI Pose Depth Gallery](https://ai-pose-depth-gallery.pages.dev/) から `<img>` でホットリンク | [ギア / @giaaibusi](https://x.com/giaaibusi) に帰属。このリポジトリにはテキストのメタデータと中国語名のみ |
 | 深度ポーズのテキストメタデータ | はい、`depth/packs/` | 日本語テキストは原作者に帰属。中国語名は本プロジェクトのもの |
+| 歴代衣装・シーン・光・小道具・家具 | いいえ — `fetch-modules.py` が [Shisei](https://github.com/wquguru/shisei) から取得 | 画像と `data/` は [wquguru](https://github.com/wquguru) による [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)。`LICENSE-images` と `NOTICE` を `assets-raw/` に残す |
+| 髪型と CharaDB のタグ | いいえ。タグは [taki-ttt/charadb](https://github.com/taki-ttt/charadb) から、画像は [charadb-2fi.pages.dev](https://charadb-2fi.pages.dev/) へホットリンク | タグと日本語名は CC0。画像の再配布は禁止なのでダウンロードしない。第三者の中国語訳には再配布できる許諾がないため、見出しは上流の日本語のまま |
+| 表情 | いいえ — 公開手順では作らない | [WaveSpeed AI Emotion Gallery](https://wavespeed.ai/free-tools/ai-emotion-gallery) に再配布できる公開パッケージはない。robots.txt は画像とデータがオープンソースではないと書き、利用規約 8.5 は収集とミラーを禁じる。土台の [ICT-FaceKit](https://github.com/USC-ICT/ICT-FaceKit) は MIT だが、ギャラリーの画像はそれに含まれない |
 | README のスクリーンショット | はい | 表示されている画像は上記のとおり各作者に帰属 |
 
 - MIT が対象とするのはコードのみで、画像やデータは対象外です。

@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""新模块数据准备：从本地素材档案生成 assets-raw 下的新模块数据与图片（不访问外网）。
+"""新模块数据准备：把已经落地的素材档案整理成 assets-raw 下的模块数据（本脚本不访问外网）。
+
+公开来源由 scripts/fetch-modules.py 下载后再调用本脚本。私有档案路径仍然可用。
 
 来源：
-- 表情：WaveSpeed 档案图片 + catalog 元数据快照（汉化在本脚本内）
-- CharaDB：items_public.json / char-db-cn 中文层 / anhao 服装中文层快照。
-  授权硬约束：标签数据 CC0 可自存，图片禁止再分发——只写原站热链 URL，不复制图片。
-- Shisei 历代服饰 + 场景/光影/道具/家具：档案图片 + 上游元数据（CC0 1.0，可自存）。
+- 表情：仅当快照里已有 catalog.json 时生成。WaveSpeed 画廊没有公开、可再分发的图包，
+  fetch-modules.py 会跳过，不会去抓站。
+- CharaDB：items_public.json（标签与日文名 CC0）。有 char-db-cn / anhao 中文层快照时沿用原汉化；
+  没有时条目标题用上游日文名。图片只写原站热链，不复制。
+- Shisei 历代服饰 + 场景/光影/道具/家具：图片与元数据 CC0 1.0。顺手拷贝 LICENSE-images 与 NOTICE。
 
 用法：
   python3 scripts/prep-modules.py [--archive DIR] [--snapshots DIR] [--raw DIR]
@@ -27,7 +30,7 @@ def cp(src, dst):
 
 def dump(obj, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    json.dump(obj, open(path, 'w'), ensure_ascii=False, separators=(',', ':'))
+    json.dump(obj, open(path, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 
 # ================= 表情（WaveSpeed，汉化） =================
 EMO_ZH = {'happy': '开心', 'laughing': '大笑', 'sad': '悲伤', 'angry': '愤怒', 'surprised': '惊讶',
@@ -120,8 +123,23 @@ DESC_EN_FILL = {  # 上游 catalog 里 desc 为空的 4 条，按名称补
  'disgusted-049': 'strong distaste, the lips curled, the nose wrinkled hard and the brows lowered',
  'surprised-036': 'startled, the head pulled back slightly, the eyes wide and the brows raised'}
 
+EXPR_SKIP = (
+    'prep-modules: 跳过表情。WaveSpeed AI Emotion Gallery 的成图、名称和表情目录没有公开的可再分发包；'
+    'https://wavespeed.ai/robots.txt 写明这些图片和数据不是开源的，服务条款第 8.5 节禁止抓取、镜像或复制站点数据。'
+    '底层 ICT-FaceKit 是 MIT，但画廊成图不属于该许可。脚本不会绕过限制去抓。')
+
+def keep_shisei_licence(dst):
+    for name in ('LICENSE-images', 'NOTICE'):
+        src = f'{ARC}/shisei/{name}'
+        if os.path.exists(src):
+            cp(src, os.path.join(dst, name))
+
 def prep_expression():
-    cat = json.load(open(f'{SNAP}/expression/catalog.json'))
+    catp = f'{SNAP}/expression/catalog.json'
+    if not os.path.exists(catp):
+        print(EXPR_SKIP)
+        return 0
+    cat = json.load(open(catp))
     out = []
     for iid, v in cat.items():
         emo = v['category']
@@ -148,47 +166,116 @@ CATEN = {'制服与校园风': 'school uniforms', '春夏休闲': 'spring & summ
          '和服': 'kimono', '运动': 'sports', '居家与睡衣': 'loungewear & pajamas',
          '洛丽塔与地雷系': 'lolita & jirai', '偶像与舞台': 'idol & stage', '军事与科幻': 'military & sci-fi'}
 
-def prep_charadb():
-    src = f'{SNAP}/charadb-shisei/charadb'
-    items = json.load(open(f'{src}/items_public.json'))
-    js = open(f'{src}/char-db-cn_data.js').read()
-    cn = {x['id']: x for x in json.loads(re.search(r'window\.CHARDB=(\{.*\})\s*;?\s*$', js, re.S).group(1))['items']}
-    byid = {x['id']: x for x in items}
-    hair = []
+# 官方日文分类 → 本仓库已有的中文类名。条目标题仍用 CC0 日文名，不借用未授权的第三方译文。
+HAIR_CAT = {'髪型': '发型', '前髪': '刘海', '髪色': '发色', '髪飾り': '发饰', '目の色': '瞳色', '瞳の形': '瞳型'}
+OUTFIT_CAT = {
+    '制服・学生': ('制服与校园风', 'school uniforms'),
+    'カジュアル(春夏)': ('春夏休闲', 'spring & summer casual'),
+    'カジュアル(秋冬)': ('秋冬休闲', 'autumn & winter casual'),
+    '職業・コスプレ': ('职业与角色扮演', 'occupations & cosplay'),
+    '水着': ('泳装', 'swimwear'),
+    'ファンタジー': ('奇幻', 'fantasy'),
+    'ドレス・パーティ': ('礼服与派对', 'dresses & party'),
+    'イベント・季節': ('节庆与季节', 'events & seasonal'),
+    'きれいめ・オフィス': ('通勤与职场', 'commute & office'),
+    '和服': ('和服', 'kimono'),
+    'スポーツ・部活': ('运动', 'sports'),
+    '部屋着・パジャマ': ('居家与睡衣', 'loungewear & pajamas'),
+    'ゴスロリ・地雷系': ('洛丽塔与地雷系', 'lolita & jirai'),
+    'アイドル・ステージ': ('偶像与舞台', 'idol & stage'),
+    'ミリタリー・SF': ('军事与科幻', 'military & sci-fi')}
+
+def _hair_public(items):
+    """没有中文层时：标题用 CC0 日文名，分类用上面的中文类名，图片只热链。"""
     styles = [x for x in items if x['set'] == 'hair' and x['sub'] == 'style']
     kids = {}
     for x in items:
         if x.get('sub') == 'style_color':
             kids.setdefault(x['parent'], []).append(x)
+    hair = []
     for s in styles:
-        zh = cn[s['id']]['zh']
         vs = [s] + sorted(kids.get(s['id'], []), key=lambda x: x['id'])
         angs = []
         for v in vs:
             cen = v['color'].split()[0]
-            angs.append({'zh': COLOR_ZH[cen] + '发', 'en': v['color'],
+            angs.append({'zh': COLOR_ZH.get(cen, cen) + '发', 'en': v['color'],
                          't': f"{CH}/thumb/{v['id']}.webp", 'i': f"{CH}/img/{v['id']}.jpg", 'o': ''})
-        hair.append({'id': s['id'], 'cat': '发型', 'ti': zh, 'zh': zh, 'en': s['tags'], 'kw': s['tags'],
+        hair.append({'id': s['id'], 'cat': '发型', 'ti': s['jp'], 'zh': s['jp'], 'en': s['tags'], 'kw': s['tags'],
                      'ja': s['jp'], 'line': '发型', 'lineEn': 'hairstyle', 'no': s['id'], 'ext': 1, 'angles': angs})
     order = ['刘海', '发色', '发饰', '瞳色', '瞳型']
     singles = [x for x in items if x['set'] == 'hair' and x['sub'] in ('bangs', 'color', 'acc', 'eye')]
-    singles.sort(key=lambda x: (order.index(cn[x['id']]['catZh']), x['id']))
+    singles.sort(key=lambda x: (order.index(HAIR_CAT[x['cat']]), x['id']))
     for x in singles:
-        c = cn[x['id']]
-        hair.append({'id': x['id'], 'cat': c['catZh'], 'ti': c['zh'], 'zh': c['zh'], 'en': x['tags'],
+        hair.append({'id': x['id'], 'cat': HAIR_CAT[x['cat']], 'ti': x['jp'], 'zh': x['jp'], 'en': x['tags'],
                      'kw': x['tags'], 'ja': x['jp'], 'no': x['id'], 'ext': 1,
                      't': f"{CH}/thumb/{x['id']}.webp", 'm': f"{CH}/img/{x['id']}.jpg", 'i': f"{CH}/img/{x['id']}.jpg", 'o': ''})
-    dump(hair, f'{RAW}/charadb/hair.json')
-    az = json.load(open(f'{src}/costume-anime-zh_anhao.json'))
+    return hair
+
+def _outfits_public(items):
     out = []
-    for x in az:  # anhao 层只有 outfit 440 条，天然不含 outfit2 的 1320 条
-        out.append({'id': x['id'], 'cat': x['分类'], 'catEn': CATEN[x['分类']], 'kw': x['关键词'],
-                    'name': x['服装名称'], 'tagsZh': x['标签'], 't': x['缩略图'], 'm': x['预览图'],
-                    'i': x['原图'], 'sens': bool(x['敏感'])})
-    assert len(out) == 440 and all(o['id'].startswith('charadb-O') for o in out)
+    for x in items:
+        if x['set'] != 'outfit':
+            continue
+        zh, en = OUTFIT_CAT[x['cat']]
+        tags = [t.strip() for t in x['tags'].split(',') if t.strip()]
+        out.append({'id': 'charadb-' + x['id'], 'cat': zh, 'catEn': en, 'kw': x['tags'],
+                    'name': x['jp'], 'tagsZh': [x['jp']] + tags,
+                    't': f"{CH}/thumb/{x['id']}.webp", 'm': f"{CH}/img/{x['id']}.jpg",
+                    'i': f"{CH}/img/{x['id']}.jpg"})
+    return out
+
+def prep_charadb():
+    src = f'{SNAP}/charadb-shisei/charadb'
+    items = json.load(open(f'{src}/items_public.json', encoding='utf-8'))
+    cn_path = f'{src}/char-db-cn_data.js'
+    az_path = f'{src}/costume-anime-zh_anhao.json'
+    if os.path.exists(cn_path):
+        js = open(cn_path, encoding='utf-8').read()
+        cn = {x['id']: x for x in json.loads(re.search(r'window\.CHARDB=(\{.*\})\s*;?\s*$', js, re.S).group(1))['items']}
+        hair = []
+        styles = [x for x in items if x['set'] == 'hair' and x['sub'] == 'style']
+        kids = {}
+        for x in items:
+            if x.get('sub') == 'style_color':
+                kids.setdefault(x['parent'], []).append(x)
+        for s in styles:
+            zh = cn[s['id']]['zh']
+            vs = [s] + sorted(kids.get(s['id'], []), key=lambda x: x['id'])
+            angs = []
+            for v in vs:
+                cen = v['color'].split()[0]
+                angs.append({'zh': COLOR_ZH[cen] + '发', 'en': v['color'],
+                             't': f"{CH}/thumb/{v['id']}.webp", 'i': f"{CH}/img/{v['id']}.jpg", 'o': ''})
+            hair.append({'id': s['id'], 'cat': '发型', 'ti': zh, 'zh': zh, 'en': s['tags'], 'kw': s['tags'],
+                         'ja': s['jp'], 'line': '发型', 'lineEn': 'hairstyle', 'no': s['id'], 'ext': 1, 'angles': angs})
+        order = ['刘海', '发色', '发饰', '瞳色', '瞳型']
+        singles = [x for x in items if x['set'] == 'hair' and x['sub'] in ('bangs', 'color', 'acc', 'eye')]
+        singles.sort(key=lambda x: (order.index(cn[x['id']]['catZh']), x['id']))
+        for x in singles:
+            c = cn[x['id']]
+            hair.append({'id': x['id'], 'cat': c['catZh'], 'ti': c['zh'], 'zh': c['zh'], 'en': x['tags'],
+                         'kw': x['tags'], 'ja': x['jp'], 'no': x['id'], 'ext': 1,
+                         't': f"{CH}/thumb/{x['id']}.webp", 'm': f"{CH}/img/{x['id']}.jpg", 'i': f"{CH}/img/{x['id']}.jpg", 'o': ''})
+    else:
+        print('prep-modules: 发型标题用上游 CC0 日文名（char-db-cn 中文层没有可再分发许可，不下载）')
+        hair = _hair_public(items)
+    dump(hair, f'{RAW}/charadb/hair.json')
+    if os.path.exists(az_path):
+        az = json.load(open(az_path, encoding='utf-8'))
+        out = []
+        for x in az:  # anhao 层只有 outfit 440 条，天然不含 outfit2 的 1320 条
+            out.append({'id': x['id'], 'cat': x['分类'], 'catEn': CATEN[x['分类']], 'kw': x['关键词'],
+                        'name': x['服装名称'], 'tagsZh': x['标签'], 't': x['缩略图'], 'm': x['预览图'],
+                        'i': x['原图'], 'sens': bool(x['敏感'])})
+        assert len(out) == 440 and all(o['id'].startswith('charadb-O') for o in out)
+    else:
+        print('prep-modules: 二次元服装标题用上游 CC0 日文名（anhao 中文层没有可再分发许可，不下载）。'
+              '公开版不含内衣/性感包，不另标敏感。')
+        out = _outfits_public(items)
     dump(out, f'{RAW}/charadb/outfits.json')
-    for f in ('items_public.json', 'char-db-cn_data.js', 'costume-anime-zh_anhao.json', 'LICENSE.txt'):
-        cp(f'{src}/{f}', f'{RAW}/charadb/source/{f}')
+    for f in ('items_public.json', 'char-db-cn_data.js', 'costume-anime-zh_anhao.json', 'LICENSE.txt', 'LICENSE'):
+        if os.path.exists(f'{src}/{f}'):
+            cp(f'{src}/{f}', f'{RAW}/charadb/source/{f}')
     return len(hair), len(out)
 
 # ================= Shisei（CC0，全量自存） =================
@@ -226,6 +313,7 @@ def prep_dynasty():
                     'extra': {'era': it['era_zh'], 'eraEn': it['era_en'], 'gender': it['gender']}})
     dump(out, f'{RAW}/dynasty/data.json')
     cp(f'{SNAP}/charadb-shisei/shisei/costumes.json', f'{RAW}/dynasty/source/costumes.json')
+    keep_shisei_licence(f'{RAW}/dynasty/source')
     return len(out)
 
 def prep_extra(lib, sub, catmap):
@@ -253,6 +341,8 @@ def prep_extra(lib, sub, catmap):
                     'en': it['desc_en'], 'ja': it['name_ja'], 'line': it['group_zh'],
                     'lineEn': it['group_en'], 'views': vs, 'extra': ex})
     dump(out, f'{RAW}/{sub}/data.json')
+    cp(f'{ARC}/shisei-extra/meta/{lib}.json', f'{RAW}/{sub}/source/{lib}.json')
+    keep_shisei_licence(f'{RAW}/{sub}/source')
     return len(out)
 
 def main():

@@ -82,12 +82,17 @@ pip install pillow
 # 1. 从原作者的图库下载数据和图片到 ./assets-raw（数 GB，耗时较长）
 python3 scripts/fetch-assets.py            # 也可只下部分：pose costume portrait
 
-# 2. 构建到 dist/
+# 2. 发型、历代、场景、光影、道具、家具：从公开上游拉取许可允许的部分
+python3 scripts/fetch-modules.py
+
+# 3. 构建到 dist/
 python3 build.py
 
-# 3. 本地预览 http://localhost:8787
+# 4. 本地预览 http://localhost:8787
 python3 -m http.server 8787 -d dist
 ```
+
+`fetch-modules.py` 会把构建计数里的新模块补上（发型、历代服饰、场景、光影、道具、家具，以及并入动画服装的 CharaDB 元数据）。表情库会跳过，原因见下面的许可表。素材仍只留在 `assets-raw/`，不进 git。
 
 | 环境变量 | 作用 | 默认 |
 |---|---|---|
@@ -96,7 +101,7 @@ python3 -m http.server 8787 -d dist
 
 ## 部署
 
-仓库不带素材，所以需要先在本地构建，再上传 `dist/` 到 Cloudflare Pages：
+仓库不带素材，所以需要先在本地跑完 `fetch-assets.py` 和 `fetch-modules.py`，再构建并上传 `dist/` 到 Cloudflare Pages：
 
 ```bash
 npm install
@@ -136,7 +141,7 @@ costume_text.py         服装中英文描述
 words.txt, tr_*.txt     词表与中英文翻译
 depth/                  深度姿势素材包（只有文本，图片热链原站）
 depthpack.py            把素材包编成可替换的 depths.json
-scripts/                fetch-assets.py 下载素材，make-icons.js 生成图标
+scripts/                fetch-assets.py 下载姿势/服装/人像；fetch-modules.py 下载 Shisei 与 CharaDB 标签；prep-modules.py 整理成构建输入；make-icons.js 生成图标
 tests/                  Playwright 测试
 docs/                   README 用图
 ```
@@ -158,7 +163,7 @@ Key 只存在你浏览器的 localStorage 里，可在设置里清除。默认�
 <details>
 <summary><b>素材可以商用吗？</b></summary>
 
-本仓库不包含任何图片，素材版权归原作者所有，请以各原站的说明为准。人像库作者声明为 CC0。本仓库的 MIT 许可只覆盖代码和文案。
+本仓库不包含任何图片，素材版权归原作者所有，请以各原站的说明为准。人像库作者声明为 CC0。Shisei 的历代服饰、场景、光影、道具、家具也是 CC0。CharaDB 的标签是 CC0，图片不能再分发。表情图没有公开、可再分发的来源，公开流程不包含这一栏。本仓库的 MIT 许可只覆盖代码和文案。
 </details>
 
 <details>
@@ -193,6 +198,8 @@ Key 只存在你浏览器的 localStorage 里，可在设置里清除。默认�
 - [AI Costume Gallery](https://ai-costume-gallery.pages.dev/)：服装图，作者 [@giaaibusi](https://x.com/giaaibusi)
 - [AI Costume Anime Gallery](https://ai-costume-anime-gallery.pages.dev/)：动画服装图，作者 [@giaaibusi](https://x.com/giaaibusi)
 - [AI Portrait Gallery](https://ai-portrait-gallery.pages.dev/)：人像，作者 [@agi_aibusi](https://x.com/agi_aibusi)，CC0
+- [Shisei](https://github.com/wquguru/shisei)：历代服饰、场景、光影、道具、家具，作者 [wquguru](https://github.com/wquguru)，图片与数据 [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+- [CharaDB](https://github.com/taki-ttt/charadb) / [charadb-2fi.pages.dev](https://charadb-2fi.pages.dev/)：发型与二次元服装的标签，作者 たき（[@taki_auto](https://github.com/taki-ttt)）。标签 CC0；图片只热链原站，不进本仓库
 - [wzc520pyfm/gen-ai-pose-image](https://github.com/wzc520pyfm/gen-ai-pose-image)、[paipiange/nvzhuang](https://github.com/paipiange/nvzhuang)：给了很多思路的同类项目
 
 ## 许可与素材边界
@@ -204,6 +211,9 @@ Key 只存在你浏览器的 localStorage 里，可在设置里清除。默认�
 | 人像图片 | 否，同上 | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/deed.zh-hans)，作者 [@agi_aibusi](https://x.com/agi_aibusi)（[AI Portrait Gallery](https://ai-portrait-gallery.pages.dev/)） |
 | 深度姿势图片 | 否，页面 `<img>` 热链 [AI Pose Depth Gallery](https://ai-pose-depth-gallery.pages.dev/) | 归作者 [ギア / @giaaibusi](https://x.com/giaaibusi)。本仓库只有文本元数据和译名 |
 | 深度姿势文本元数据 | 是，`depth/packs/` | 日文原文归原作者，中文译名为本站 |
+| 历代服饰、场景、光影、道具、家具 | 否，由 `fetch-modules.py` 从 [Shisei](https://github.com/wquguru/shisei) 下载 | 图片和 `data/` 为 [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)，作者 [wquguru](https://github.com/wquguru)。脚本会把 `LICENSE-images` 和 `NOTICE` 存进 `assets-raw/` |
+| 发型、CharaDB 服装标签 | 否。标签由 `fetch-modules.py` 从 [taki-ttt/charadb](https://github.com/taki-ttt/charadb) 下载；图片热链 [charadb-2fi.pages.dev](https://charadb-2fi.pages.dev/) | 标签和日文名为 CC0。图片禁止再分发，脚本不下载、不复制。条目标题用上游日文名：第三方中文层没有可再分发许可 |
+| 表情 | 否，公开流程不生成 | [WaveSpeed AI Emotion Gallery](https://wavespeed.ai/free-tools/ai-emotion-gallery) 没有公开的可再分发包。robots.txt 写明图片和数据不是开源的，服务条款第 8.5 节禁止抓取或镜像。底层 [ICT-FaceKit](https://github.com/USC-ICT/ICT-FaceKit) 是 MIT，但画廊成图不属于该许可 |
 | README 截图 | 是 | 截图里的图片素材同上，归各自作者 |
 
 - MIT 只覆盖代码，不覆盖任何图片和数据。

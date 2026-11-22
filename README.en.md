@@ -67,15 +67,18 @@ You need Python 3.9+ with Pillow. Tests and deploys also need Node.js 18+.
 git clone https://github.com/atuizz/posewear.git && cd posewear
 pip install pillow
 python3 scripts/fetch-assets.py   # downloads data and images from the original galleries (several GB)
+python3 scripts/fetch-modules.py  # Shisei CC0 libraries + CharaDB tags (images are hotlinked, not saved)
 python3 build.py                  # outputs dist/
 python3 -m http.server 8787 -d dist
 ```
+
+`fetch-modules.py` fills hair, historical costume, scene, light, prop and furniture. The expression tab stays empty: WaveSpeed does not publish a redistributable gallery pack, and its robots.txt / Terms §8.5 forbid scraping those images and data. Assets stay in `assets-raw/` and are not committed.
 
 Set `POSEWEAR_RAW` to use a different asset folder, and `POSEWEAR_SITE` to set your own site URL for the sitemap and share links.
 
 ## Deploy
 
-The repository ships without assets, so build locally first, then upload `dist/` to Cloudflare Pages:
+The repository ships without assets, so run `fetch-assets.py` and `fetch-modules.py` first, then build and upload `dist/` to Cloudflare Pages:
 
 ```bash
 npm install && npx wrangler login
@@ -109,7 +112,7 @@ Issues and PRs are welcome. Run `python3 build.py` and both test files before yo
 
 ## Acknowledgements
 
-[AI Pose Gallery](https://ai-pose-gallery.pages.dev/) · [AI Costume Gallery](https://ai-costume-gallery.pages.dev/) · [AI Costume Anime Gallery](https://ai-costume-anime-gallery.pages.dev/) by [@giaaibusi](https://x.com/giaaibusi) · [AI Pose Depth Gallery](https://ai-pose-depth-gallery.pages.dev/) by [ギア / @giaaibusi](https://x.com/giaaibusi) (hotlinked, unofficial Chinese index; images are not in this repo) · [AI Portrait Gallery](https://ai-portrait-gallery.pages.dev/) by [@agi_aibusi](https://x.com/agi_aibusi) (CC0) · [wzc520pyfm/gen-ai-pose-image](https://github.com/wzc520pyfm/gen-ai-pose-image) · [paipiange/nvzhuang](https://github.com/paipiange/nvzhuang)
+[AI Pose Gallery](https://ai-pose-gallery.pages.dev/) · [AI Costume Gallery](https://ai-costume-gallery.pages.dev/) · [AI Costume Anime Gallery](https://ai-costume-anime-gallery.pages.dev/) by [@giaaibusi](https://x.com/giaaibusi) · [AI Pose Depth Gallery](https://ai-pose-depth-gallery.pages.dev/) by [ギア / @giaaibusi](https://x.com/giaaibusi) (hotlinked, unofficial Chinese index; images are not in this repo) · [AI Portrait Gallery](https://ai-portrait-gallery.pages.dev/) by [@agi_aibusi](https://x.com/agi_aibusi) (CC0) · [Shisei](https://github.com/wquguru/shisei) by [wquguru](https://github.com/wquguru) (historical costume, scene, light, prop, furniture; images and data CC0) · [CharaDB](https://github.com/taki-ttt/charadb) by Taki (tag data CC0, images hotlinked only) · [wzc520pyfm/gen-ai-pose-image](https://github.com/wzc520pyfm/gen-ai-pose-image) · [paipiange/nvzhuang](https://github.com/paipiange/nvzhuang)
 
 ## License and asset boundaries
 
@@ -120,6 +123,9 @@ Issues and PRs are welcome. Run `python3 build.py` and both test files before yo
 | Portrait images | No — same as above | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) by [@agi_aibusi](https://x.com/agi_aibusi) ([AI Portrait Gallery](https://ai-portrait-gallery.pages.dev/)) |
 | Depth-pose images | No — hotlinked with `<img>` from [AI Pose Depth Gallery](https://ai-pose-depth-gallery.pages.dev/) | Owned by [ギア / @giaaibusi](https://x.com/giaaibusi). This repo only has the text metadata and Chinese names |
 | Depth-pose text metadata | Yes, `depth/packs/` | Japanese text belongs to the original author; Chinese names are ours |
+| Historical costume, scene, light, prop, furniture | No — `fetch-modules.py` downloads them from [Shisei](https://github.com/wquguru/shisei) | Images and `data/` are [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) by [wquguru](https://github.com/wquguru). The script keeps `LICENSE-images` and `NOTICE` under `assets-raw/` |
+| Hair and CharaDB outfit tags | No. Tags come from [taki-ttt/charadb](https://github.com/taki-ttt/charadb); images are hotlinked from [charadb-2fi.pages.dev](https://charadb-2fi.pages.dev/) | Tags and Japanese labels are CC0. Images must not be redistributed, so the script never downloads them. Titles stay in the upstream Japanese: the third-party Chinese layers are not licensed for reuse |
+| Expressions | No — the public setup does not build this tab | [WaveSpeed AI Emotion Gallery](https://wavespeed.ai/free-tools/ai-emotion-gallery) has no public redistributable pack. robots.txt says the images and data are not open source, and Terms §8.5 forbid scraping or mirroring. The underlying [ICT-FaceKit](https://github.com/USC-ICT/ICT-FaceKit) is MIT; the gallery renders are not |
 | README screenshots | Yes | The pictures shown belong to their authors as above |
 
 - MIT covers the code only, not any image or data.
