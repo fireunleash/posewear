@@ -1,4 +1,4 @@
-import json,os,shutil,subprocess,depthpack
+import json,os,shutil,subprocess,sys,depthpack
 from costume_text import gen2
 import hashlib,re,html as H
 from concurrent.futures import ProcessPoolExecutor
@@ -41,6 +41,8 @@ def cr(d):
   if not os.path.exists(o): os.link(f"{R}/portrait/{d['full']}",o)
 
 def main():
+  # --local / POSEWEAR_LOCAL=1：给 wrangler pages dev 的纯 http 预览用，post.py 据此去掉 HSTS 和 upgrade-insecure-requests
+  if '--local' in sys.argv[1:]: os.environ['POSEWEAR_LOCAL']='1'
   if AHOST: os.makedirs(AD,exist_ok=True)
   LINE={'全身1人・セクシー系':('全身·性感','full body, solo, sexy'),'全身1人・標準系':('全身·标准','full body, solo'),'上半身1人':('上半身','upper body, solo'),'2人絡み':('双人互动','two people, couple')}
   CAT={'寝そべり':'躺卧','セクシー・露骨寄り系':'性感·大胆','立ち':'站姿','座り':'坐姿','かわいい系':'可爱','胸寄せ・谷間強調系':'挤胸·乳沟','膝立ち・四つん這い':'跪立·趴姿','特殊':'特殊','正常位':'正面位','膝立ち':'跪立','横座り・女の子座り':'侧坐·鸭子坐','後背位':'后入位','背面座位':'背面坐位','しゃがみ':'蹲姿','前かがみ':'前倾','顔寄せ系':'贴脸','騎乗位':'骑乘位','立位':'立位','立位密着':'立位贴身','のけぞり・反り':'后仰','ひねり':'扭身','側位':'侧位','座位':'坐位','対面座位':'对面坐位','座位密着':'坐位贴身','密着':'贴身'}

@@ -143,10 +143,21 @@ $('#cfEye').onclick=()=>{const k=$('#cfKey');k.type=k.type=='password'?'text':'p
 $('#cfSave').onclick=()=>{const o=cfgRead();if(o.prov=='custom'&&!o.base)return msg('自定义中转需要填写 Base URL',1);Object.assign(cfg,o);SV('wbCfg',cfg);render();cfgClose();toast('API 设置已保存在本机')};
 $('#cfClr').onclick=()=>{cfg.key='';$('#cfKey').value='';SV('wbCfg',cfg);render();msg('已从本机清除密钥')};
 function msg(t,bad){const m=$('#cfMsg');m.textContent=t;m.className='fine '+(bad?'bad':'good')}
+// OpenAI 是 {data:[...]}；SpicyAPI 目录是 {data:{items:[{model}]}}，也有 {models:[]} / 顶层数组。认不出时返回 null，不要抛 TypeError（会被误报成 CORS）。
+function modelIds(j){
+ const arr=v=>Array.isArray(v)?v:null;
+ let list=arr(j);
+ if(!list&&j&&typeof j=='object'){const d=j.data;
+  list=arr(d)||(d&&typeof d=='object'&&(arr(d.items)||arr(d.data)||arr(d.models)))||arr(j.models)||arr(j.items);
+  if(!list&&(d==null||d===''))list=[]}
+ if(!list)return null;
+ return list.map(m=>typeof m=='string'?m:(m&&(m.id||m.model||m.name))||'').filter(Boolean)}
+function clipBody(t){t=String(t||'');if(cfg.key)t=t.split(cfg.key).join('***');return t.replace(/\s+/g,' ').slice(0,300)}
 $('#cfTest').onclick=async()=>{const o=cfgRead();if(!o.key)return msg('请先填写 API Key',1);if(o.prov=='custom'&&!o.base)return msg('请填写 Base URL',1);const old=Object.assign({},cfg);Object.assign(cfg,o);msg('正在连接…');
- try{const g=cfg.prov=='gemini',url=g?`${root()}/models/${encodeURIComponent(modelOf())}`:`${root()}/models`;const r=await call(url,{method:'GET',headers:auth()});const j=await r.json().catch(()=>null);
+ try{const g=cfg.prov=='gemini',url=g?`${root()}/models/${encodeURIComponent(modelOf())}`:`${root()}/models`;const r=await call(url,{method:'GET',headers:auth()});const text=await r.text();
+  let j=null;if(text){try{j=JSON.parse(text)}catch(e){const err=Error('parse');err.zh='服务商返回的内容不是 JSON（HTTP '+r.status+'）'+(text?'：'+clipBody(text):'');throw err}}
   if(!r.ok){if(cfg.prov=='seedream'&&r.status==404){if((r.headers.get('content-type')||'').includes('text/html')){const e=Error('');e.zh='本站代理未生效：/api/proxy 返回的是网站静态页面而不是接口响应，Seedream 暂时连不上，请稍后再试或联系站长';throw e}return msg('地址可达、密钥已被接受（方舟不提供模型列表接口，可直接生成测试）')}throw await apiErr(r,j)}
-  if(g)msg(`连接成功：模型 ${j&&j.displayName||modelOf()} 可用`);else{const ids=(j&&j.data||[]).map(m=>m.id),has=ids.includes(modelOf());msg(`连接成功：共 ${ids.length} 个模型`+(ids.length?(has?`，包含 ${modelOf()}`:`，但未找到 ${modelOf()}（中转可能不列出，可直接尝试）`):''))}}
+  if(g)msg(`连接成功：模型 ${j&&j.displayName||modelOf()} 可用`);else{const ids=modelIds(j);if(!ids){const err=Error('shape');err.zh='已连上，但模型列表的格式认不出来（HTTP '+r.status+'）'+(text?'：'+clipBody(text):'');throw err}const has=ids.includes(modelOf());msg(`连接成功：共 ${ids.length} 个模型`+(ids.length?(has?`，包含 ${modelOf()}`:`，但未找到 ${modelOf()}（中转可能不列出，可直接尝试）`):''))}}
  catch(e){msg(nice(e),1)}finally{Object.assign(cfg,old)}};
 // ---------- 请求 ----------
 function auth(){return cfg.prov=='gemini'?{'x-goog-api-key':cfg.key}:{Authorization:'Bearer '+cfg.key}}

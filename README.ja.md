@@ -70,11 +70,17 @@ python3 scripts/fetch-assets.py   # 元ギャラリーからデータと画像�
 python3 scripts/fetch-modules.py  # Shisei（CC0）と CharaDB のタグ。画像はホットリンクのみ
 python3 build.py                  # dist/ を出力
 python3 -m http.server 8787 -d dist
+
+# wrangler で素の http（例: http://<tailscale-ip>:8787）を開くときは --local を付ける。
+# 付けないと _headers の upgrade-insecure-requests と HSTS でブラウザが素材を https に上げ、スタイルが外れる。
+# Cloudflare へデプロイするビルドには付けない。
+python3 build.py --local          # または POSEWEAR_LOCAL=1 python3 build.py
+npx wrangler pages dev dist --ip 0.0.0.0
 ```
 
 `fetch-modules.py` は髪型・歴代衣装・シーン・光・小道具・家具を埋めます。表情タブは空のままです。WaveSpeed には再配布できる公開パッケージがなく、robots.txt と利用規約 8.5 が画像とデータの収集を禁じています。素材は `assets-raw/` に残り、git には入りません。
 
-別の素材フォルダを使うには `POSEWEAR_RAW` を、サイトマップや共有リンク用に独自のサイト URL を設定するには `POSEWEAR_SITE` を設定します。
+別の素材フォルダを使うには `POSEWEAR_RAW` を、サイトマップや共有リンク用に独自のサイト URL を設定するには `POSEWEAR_SITE` を設定します。`POSEWEAR_LOCAL=1`（または `python3 build.py --local`）は `_headers` から HSTS と `upgrade-insecure-requests` を外し、素の http プレビューでも CSS が読めます。
 
 ## デプロイ
 
