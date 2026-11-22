@@ -70,11 +70,17 @@ python3 scripts/fetch-assets.py   # downloads data and images from the original 
 python3 scripts/fetch-modules.py  # Shisei CC0 libraries + CharaDB tags (images are hotlinked, not saved)
 python3 build.py                  # outputs dist/
 python3 -m http.server 8787 -d dist
+
+# Plain http via wrangler (for example http://<tailscale-ip>:8787). Without --local,
+# upgrade-insecure-requests and HSTS in _headers make the browser load assets over https
+# and the page renders unstyled. Do not use --local for a Cloudflare deploy.
+python3 build.py --local          # or: POSEWEAR_LOCAL=1 python3 build.py
+npx wrangler pages dev dist --ip 0.0.0.0
 ```
 
 `fetch-modules.py` fills hair, historical costume, scene, light, prop and furniture. The expression tab stays empty: WaveSpeed does not publish a redistributable gallery pack, and its robots.txt / Terms §8.5 forbid scraping those images and data. Assets stay in `assets-raw/` and are not committed.
 
-Set `POSEWEAR_RAW` to use a different asset folder, and `POSEWEAR_SITE` to set your own site URL for the sitemap and share links.
+Set `POSEWEAR_RAW` to use a different asset folder, and `POSEWEAR_SITE` to set your own site URL for the sitemap and share links. `POSEWEAR_LOCAL=1` (or `python3 build.py --local`) omits HSTS and `upgrade-insecure-requests` from `_headers` so a plain-http preview keeps its CSS.
 
 ## Deploy
 

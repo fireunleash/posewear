@@ -90,6 +90,12 @@ python3 build.py
 
 # 4. 本地预览 http://localhost:8787
 python3 -m http.server 8787 -d dist
+
+# 用 wrangler 在纯 http 上打开（例如 http://<tailscale-ip>:8787）时加上 --local，
+# 否则 _headers 里的 upgrade-insecure-requests 和 HSTS 会让浏览器把样式改走 https，页面没有样式。
+# 部署到 Cloudflare 不要加 --local。
+python3 build.py --local
+npx wrangler pages dev dist --ip 0.0.0.0
 ```
 
 `fetch-modules.py` 会把构建计数里的新模块补上（发型、历代服饰、场景、光影、道具、家具，以及并入动画服装的 CharaDB 元数据）。表情库会跳过，原因见下面的许可表。素材仍只留在 `assets-raw/`，不进 git。
@@ -98,6 +104,7 @@ python3 -m http.server 8787 -d dist
 |---|---|---|
 | `POSEWEAR_RAW` | 原始素材目录 | `assets-raw` |
 | `POSEWEAR_SITE` | 站点地址，用于 sitemap 和分享链接 | `https://posewear.pages.dev` |
+| `POSEWEAR_LOCAL` | 设为 `1` 时与 `python3 build.py --local` 相同：`_headers` 不写 HSTS 和 `upgrade-insecure-requests`，方便纯 http 预览 | 不设（生产头） |
 
 ## 部署
 
