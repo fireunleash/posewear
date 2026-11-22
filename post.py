@@ -23,7 +23,7 @@ idx=open('src/index.html').read()
 for f in ['style.css','app.js','zip.js','extras.js','studio.js']:
   idx=idx.replace(f'"{f}"',f'"/{A[f]}"')
 idx=idx.replace('href="poses.json"',f'href="/{A["poses.json"]}"')
-if WAT: idx=idx.replace('</body>',f'<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon=\'{{"token": "{WAT}"}}\'></script></body>')
+if WAT: idx=idx.replace('</body>','<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon=\'{"token": "'+WAT+'"}\'></script></body>')
 open(f'{D}/index.html','w').write(idx)
 for f in ['style.css','app.js','zip.js','extras.js','studio.js']:
   if os.path.exists(f'{D}/{f}'): os.remove(f'{D}/{f}')
@@ -83,7 +83,7 @@ def page(kind,it,rel):
 open(f'{D}/404.html','w').write(f'''<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>页面不存在 | 衣姿 PoseWear</title><meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><style>{CSS}
 .nf{{max-width:480px;margin:12vh auto;text-align:center;padding:0 20px}}.nf b{{font-size:64px;color:#d81b3a;display:block;line-height:1}}</style></head><body><header><a href="/">{LOGO}衣姿 PoseWear</a></header>
 <div class="nf"><b>404</b><h1>这个页面不存在</h1><p class="mu">链接可能写错了，或者内容已经调整。</p><a class="go" href="/">回到首页</a><a class="go" style="background:#111" href="/#costume">看看服装库</a></div></body></html>''')
-_IMG=" ".join(["'self'","data:","blob:"]+list(DEPTH_ORIGINS)+([AH] if AH else []))
+_IMG=" ".join(["'self'","data:","blob:"]+list(dict.fromkeys(list(DEPTH_ORIGINS)+list(HOT_ORIGINS)))+([AH] if AH else []))
 CSP=("default-src 'self'; script-src 'self' "+SH+(" https://static.cloudflareinsights.com" if WAT else "")+"; style-src 'self' 'unsafe-inline'; img-src "+_IMG+"; font-src 'self' data:; "
  "connect-src 'self' data: blob: https://api.openai.com https://generativelanguage.googleapis.com https://*.volces.com https://*.bytepluses.com https://oaidalleapiprodscus.blob.core.windows.net https://*.googleusercontent.com"+(" https://cloudflareinsights.com" if WAT else "")+"; "
  "worker-src 'self'; manifest-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests")
@@ -130,4 +130,4 @@ open(f'{D}/_headers','w').write(f'''/*
 /portrait/*
   Cache-Control: public, max-age=600
 ''')
-exec(open('seo.py').read())
+exec(compile(open('seo.py',encoding='utf-8').read(),'seo.py','exec'))
